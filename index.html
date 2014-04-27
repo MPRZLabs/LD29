@@ -11,7 +11,7 @@
       var player, cursors, enemies, ground, healthtext;
       function preload() {
         game.load.spritesheet('404boy', '404boy.png', 836, 1376);
-        game.load.image('robot1', 'robot1.png');
+        game.load.spritesheet('robot1', 'robot1.png', 1104, 679);
         game.load.image('ground', 'ground.png');
         game.load.image('wall', 'wall.png');
       }
@@ -49,6 +49,8 @@
           enemy.body.gravity.y = 100;
           enemy.body.bounce.y = 0.1;
           enemy.scale.setTo(0.1, 0.1);
+          enemy.animations.add('left', [1], 10, true);
+          enemy.animations.add('right', [0], 10, true);
         }
         healthtext = game.add.text(25, 25, "HP", {fontSize:'32px', fill: '#0F0'});
         healthtext.setText("HP: "+ player.health*100+"%");
@@ -79,6 +81,11 @@
           game.physics.arcade.accelerateToObject(enemy, player, 50, 500, 0);
         } else {
           game.physics.arcade.accelerateToObject(enemy, player, 10, 500, 100);
+        }
+        if (enemy.body.velocity.x > 0) {
+          enemy.animations.play('right');
+        } else if (enemy.body.velocity.x < 0) {
+          enemy.animations.play('left');
         }
       }
       function damageAndBreak(player, enemy) {

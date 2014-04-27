@@ -48,7 +48,7 @@
           game.physics.arcade.enable(enemy);
           enemy.body.gravity.y = 100;
           enemy.body.bounce.y = 0.1;
-          enemy.scale.setTo(0.1, 0.1);
+          enemy.scale.setTo(0.05 + Math.random() * 0.1, 0.1 + Math.random() * 0.1);
           enemy.animations.add('left', [1], 10, true);
           enemy.animations.add('right', [0], 10, true);
         }

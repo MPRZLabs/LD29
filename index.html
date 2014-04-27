@@ -8,22 +8,27 @@
   <body>
     <script type="text/javascript">
       var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {preload: preload, create: create, update: update});
-      var player, cursors, enemies, ground, healthtext;
+      var player, cursors, enemies, ground, healthtext, wrench, shotkey;
       function preload() {
         game.load.spritesheet('404boy', '404boy.png', 836, 1376);
         game.load.spritesheet('robot1', 'robot1.png', 1104, 679);
+        game.load.spritesheet('wrench', 'wrench.png', 436, 495);
         game.load.image('ground', 'ground.png');
         game.load.image('wall', 'wall.png');
         game.load.image('explosion', 'explosion.png');
+        game.load.image('spark', 'spark.png');
       }
       function create() {
-        game.world.setBounds(0, 0, 2400, 600);
+        game.world.setBounds(-25, -25, 2425, 625);
         game.physics.startSystem(Phaser.Physics.ARCADE);
         cursors = game.input.keyboard.createCursorKeys();
+        shotkey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
         ground = game.add.group();
         ground.enableBody = true;
         var grnd = ground.create(-25, 0, 'wall');
+        grnd.body.immovable = true;
+        grnd = ground.create(2375, 0, 'wall');
         grnd.body.immovable = true;
         grnd = ground.create(0, 575, 'ground');
         grnd.body.immovable = true;
@@ -34,19 +39,24 @@
         grnd = ground.create(800, 25, 'ground');
         grnd.angle = 180;
         grnd.body.immovable = true;
+        
+        createWrench(200, 200, -10);
+        wrhit = true;
 
         player = game.add.sprite(50, 400, '404boy');
         game.physics.arcade.enable(player);
         player.body.gravity.y = 700;
+        player.body.drag.x = 200;
         player.health = 1.0;
         player.scale.setTo(0.1, 0.1);
         player.animations.add('left', [1], 10, true);
         player.animations.add('right', [0], 10, true);
+        player.hasWrench = false;
         game.camera.follow(player, Phaser.Camera.FOLLOW_PLATFORMER);
 
         enemies = game.add.group();
-        for (var i = 1; i < 6; i++) {
-          var enemy = enemies.create(i * (200 + Math.random() * 100), 400, 'robot1');
+        for (var i = 1; i < 8; i++) {
+          var enemy = enemies.create(i * (400 + Math.random() * 400), 400, 'robot1');
           game.physics.arcade.enable(enemy);
           enemy.body.gravity.y = 100;
           enemy.body.bounce.y = 0.1;
@@ -63,8 +73,15 @@
         healthtext.fixedToCamera = true;
       }
       function update() {
-        game.physics.arcade.collide(player, enemies, damageAndBreak, null, this);
+        game.physics.arcade.overlap(player, enemies, damageAndBreak, null, this);
         game.physics.arcade.collide(player, ground);
+        if (!player.hasWrench) {
+          game.physics.arcade.collide(wrench, ground);
+          game.physics.arcade.collide(wrench, enemies, wrenchEnemyCallback, null, this);
+          if ((wrench.body.velocity.x < 200 && wrench.body.velocity > -200) || wrhit) {
+            game.physics.arcade.overlap(player, wrench, collectWrench, null, this);
+          }
+        }
         game.physics.arcade.collide(enemies, ground);
         game.physics.arcade.collide(enemies, enemies);
         enemies.forEachAlive(smashForward, this);
@@ -81,7 +98,20 @@
         }
         if (cursors.up.isDown && player.body.touching.down)
         {
-            player.body.velocity.y -= 500;
+          player.body.velocity.y -= 500;
+        }
+        if (shotkey.isDown && player.hasWrench) {
+          player.hasWrench = false;
+          if (player.body.velocity.x < 0) {
+            createWrench(player.x - player.body.halfWidth, player.y, -800);
+          } else {
+            createWrench(player.x + player.body.width + player.body.halfWidth, player.y, 800);
+          }
+        }
+        if (!player.hasWrench) {
+          if (wrhit) {
+            game.physics.arcade.accelerateToObject(wrench, player, 150, 5000, 5000);
+          }
         }
       }
       function smashForward(enemy) {
@@ -96,6 +126,10 @@
           enemy.animations.play('left');
         }
       }
+      function collectWrench(player, wrench) {
+        player.hasWrench = true;
+        wrench.destroy();
+      }
       function damageAndBreak(player, enemy) {
         if (player.body.velocity.y > 100 && enemy.key == "robot1") {
           player.body.velocity.y -= 100;
@@ -104,12 +138,36 @@
           player.damage(0.5);
         }
         healthtext.setText("HP: "+ Math.round(player.health*100)+"%");
-        var explosion = game.add.emitter(enemy.x, enemy.y, 300);
+        var explosion = game.add.emitter(enemy.x, enemy.y, Math.round(3000*enemy.speed));
         explosion.bounce.setTo(0, 0);
-        explosion.gravity = -300;
-        explosion.makeParticles("explosion");
+        explosion.gravity.y = -100;
+        explosion.setXSpeed(-100, 100);
+        explosion.makeParticles(["explosion"]);
         explosion.start(true, 1300, null, 300);
         enemy.kill();
+      }
+      function wrenchEnemyCallback(wr, en) {
+        wrhit = true;
+        var explosion = game.add.emitter(en.x, en.y, Math.round(3000*en.speed));
+        explosion.bounce.setTo(0, 0);
+        explosion.gravity.y = 100;
+        explosion.setXSpeed(-100, 100);
+        explosion.makeParticles(["explosion"]);
+        explosion.start(true, 1300, null, 300);
+        en.kill();
+        
+      }
+      function createWrench(x, y, velx) {
+        wrench = game.add.sprite(x, y, 'wrench');
+        game.physics.arcade.enable(wrench);
+        wrench.animations.add('left', [1], 10, true);
+        wrench.animations.add('right', [0], 10, true);
+        wrench.scale.setTo(0.2,0.2);
+        wrench.body.velocity.x = velx;
+        wrench.body.bounce.x = 0.99;
+        wrench.body.bounce.y = 0.99;
+        wrench.body.gravity.y = 100;
+        wrhit = false;
       }
     </script>
   </body>

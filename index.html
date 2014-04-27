@@ -10,7 +10,7 @@
       var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {preload: preload, create: create, update: update});
       var player, cursors, enemies, ground, healthtext;
       function preload() {
-        game.load.spritesheet('404boy', '404boy.png', 1200, 1750);
+        game.load.spritesheet('404boy', '404boy.png', 836, 1376);
         game.load.image('robot1', 'robot1.png');
         game.load.image('ground', 'ground.png');
         game.load.image('wall', 'wall.png');
@@ -35,8 +35,8 @@
 
         player = game.add.sprite(50, 400, '404boy');
         game.physics.arcade.enable(player);
-        player.health = 100;
         player.body.gravity.y = 700;
+        player.health = 1.0;
         player.scale.setTo(0.1, 0.1);
         player.animations.add('left', [1], 10, true);
         player.animations.add('right', [0], 10, true);
@@ -50,7 +50,8 @@
           enemy.body.bounce.y = 0.1;
           enemy.scale.setTo(0.1, 0.1);
         }
-        healthtext = game.add.text(16, 16, "HP: "+player.health+"/100", {fontSize:'32px', fill: '#0F0'});
+        healthtext = game.add.text(25, 25, "HP", {fontSize:'32px', fill: '#0F0'});
+        healthtext.setText("HP: "+ player.health*100+"%");
       }
       function update() {
         game.physics.arcade.overlap(player, enemies, damageAndBreak, null, this);
@@ -75,15 +76,17 @@
       }
       function smashForward(enemy) {
         if (enemy.body.touching.down) {
-          enemy.body.velocity.x = -30;
+          game.physics.arcade.accelerateToObject(enemy, player, 50, 500, 0);
+        } else {
+          game.physics.arcade.accelerateToObject(enemy, player, 10, 500, 100);
         }
       }
       function damageAndBreak(player, enemy) {
-        if (player.y > enemy.y && enemy.key == "robot1") {
-
+        if (player.body.velocity.y > 0 && enemy.key == "robot1") {
+          player.body.velocity.y -= 500;
         } else {
-          player.damage(50);
-          healthtext.content = "HP: "+ player.health;
+          player.damage(0.6);
+          healthtext.setText("HP: "+ player.health*100+"%");
         }
         enemy.kill();
       }

@@ -46,7 +46,7 @@
           var enemy = enemies.create(i * 175 + 175, 400, 'robot1');
 
           game.physics.arcade.enable(enemy);
-          enemy.body.gravity.y = 1000;
+          enemy.body.gravity.y = 100;
           enemy.body.bounce.y = 0.1;
           enemy.scale.setTo(0.1, 0.1);
         }
@@ -54,7 +54,7 @@
         healthtext.setText("HP: "+ player.health*100+"%");
       }
       function update() {
-        game.physics.arcade.overlap(player, enemies, damageAndBreak, null, this);
+        game.physics.arcade.collide(player, enemies, damageAndBreak, null, this);
         game.physics.arcade.collide(player, ground);
         game.physics.arcade.collide(enemies, ground);
         enemies.forEachAlive(smashForward, this);
@@ -82,10 +82,10 @@
         }
       }
       function damageAndBreak(player, enemy) {
-        if (player.body.velocity.y > 0 && enemy.key == "robot1") {
+        if (player.body.velocity.y > 100 && enemy.key == "robot1") {
           player.body.velocity.y -= 500;
         } else {
-          player.damage(0.6);
+          player.damage(0.5);
           healthtext.setText("HP: "+ player.health*100+"%");
         }
         enemy.kill();

@@ -14,8 +14,10 @@
         game.load.spritesheet('robot1', 'robot1.png', 1104, 679);
         game.load.image('ground', 'ground.png');
         game.load.image('wall', 'wall.png');
+        game.load.image('explosion', 'explosion.png');
       }
       function create() {
+        game.world.setBounds(0, 0, 2400, 600);
         game.physics.startSystem(Phaser.Physics.ARCADE);
         cursors = game.input.keyboard.createCursorKeys();
 
@@ -40,25 +42,31 @@
         player.scale.setTo(0.1, 0.1);
         player.animations.add('left', [1], 10, true);
         player.animations.add('right', [0], 10, true);
+        game.camera.follow(player, Phaser.Camera.FOLLOW_PLATFORMER);
 
         enemies = game.add.group();
-        for (var i = 0; i < 2; i++) {
-          var enemy = enemies.create(i * 175 + 175, 400, 'robot1');
-
+        for (var i = 1; i < 6; i++) {
+          var enemy = enemies.create(i * (200 + Math.random() * 100), 400, 'robot1');
           game.physics.arcade.enable(enemy);
           enemy.body.gravity.y = 100;
           enemy.body.bounce.y = 0.1;
-          enemy.scale.setTo(0.05 + Math.random() * 0.1, 0.1 + Math.random() * 0.1);
+          var scalex = 0.1 + Math.random() * 0.1;
+          var scaley = 0.1 + Math.random() * 0.1;
+          enemy.speed = (scalex+scaley)/2;
+          enemy.scale.setTo(scalex, scaley);
+          enemy.body.gravity.y = 1500 * enemy.speed;
           enemy.animations.add('left', [1], 10, true);
           enemy.animations.add('right', [0], 10, true);
         }
         healthtext = game.add.text(25, 25, "HP", {fontSize:'32px', fill: '#0F0'});
         healthtext.setText("HP: "+ player.health*100+"%");
+        healthtext.fixedToCamera = true;
       }
       function update() {
         game.physics.arcade.collide(player, enemies, damageAndBreak, null, this);
         game.physics.arcade.collide(player, ground);
         game.physics.arcade.collide(enemies, ground);
+        game.physics.arcade.collide(enemies, enemies);
         enemies.forEachAlive(smashForward, this);
         if (cursors.left.isDown) {
           player.body.velocity.x -= 20;
@@ -78,9 +86,9 @@
       }
       function smashForward(enemy) {
         if (enemy.body.touching.down) {
-          game.physics.arcade.accelerateToObject(enemy, player, 50, 500, 0);
+          game.physics.arcade.accelerateToObject(enemy, player, 50, 5000*enemy.speed, 0);
         } else {
-          game.physics.arcade.accelerateToObject(enemy, player, 10, 500, 100);
+          game.physics.arcade.accelerateToObject(enemy, player, 10, 5000*enemy.speed, 1000*enemy.speed);
         }
         if (enemy.body.velocity.x > 0) {
           enemy.animations.play('right');
@@ -90,11 +98,17 @@
       }
       function damageAndBreak(player, enemy) {
         if (player.body.velocity.y > 100 && enemy.key == "robot1") {
-          player.body.velocity.y -= 500;
+          player.body.velocity.y -= 100;
+          player.health += 0.05;
         } else {
           player.damage(0.5);
-          healthtext.setText("HP: "+ player.health*100+"%");
         }
+        healthtext.setText("HP: "+ Math.round(player.health*100)+"%");
+        var explosion = game.add.emitter(enemy.x, enemy.y, 300);
+        explosion.bounce.setTo(0, 0);
+        explosion.gravity = -300;
+        explosion.makeParticles("explosion");
+        explosion.start(true, 1300, null, 300);
         enemy.kill();
       }
     </script>
